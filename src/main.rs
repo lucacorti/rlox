@@ -13,7 +13,7 @@ fn main() {
     let args: Vec<String> = env::args().collect();
 
     match args.len() {
-        1 => run_prompt(),
+        1 => run_repl(),
         2 => run_file(&args[1]),
         _n => {
             println!("Usage: rlox [script]");
@@ -22,12 +22,17 @@ fn main() {
     }
 }
 
-fn run_file(file: &String) {
+pub fn run(data: &String) {
+    let mut scanner = Scanner::new(data);
+    scanner.scan_tokens();
+}
+
+pub fn run_file(file: &String) {
     let data = fs::read_to_string(file).unwrap();
     run(&data);
 }
 
-fn run_prompt() {
+fn run_repl() {
     let stdin = io::stdin();
     let mut buffer = String::new();
     let mut handle = stdin.lock();
@@ -47,9 +52,4 @@ fn run_prompt() {
             }
         }
     }
-}
-
-fn run(data: &String) {
-    let mut scanner = Scanner::new(data);
-    scanner.scan_tokens();
 }

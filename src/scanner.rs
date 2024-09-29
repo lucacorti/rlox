@@ -3,113 +3,143 @@ use std::str::Chars;
 #[derive(Debug)]
 pub enum TokenType {
     // Single-character tokens.
-    LeftParen, RightParen, LeftBrace, RightBrace,
-    Comma, Dot, Minus, Plus, Semicolon, Slash, Star,
+    LeftParen,
+    RightParen,
+    LeftBrace,
+    RightBrace,
+    Comma,
+    Dot,
+    Minus,
+    Plus,
+    Semicolon,
+    Slash,
+    Star,
 
     // One or two character tokens.
-    Bang, BangEqual,
-    Equal, EqualEqual,
-    Greater, GreaterEqual,
-    Less, LessEqual,
+    Bang,
+    BangEqual,
+    Equal,
+    EqualEqual,
+    Greater,
+    GreaterEqual,
+    Less,
+    LessEqual,
 
     // Literals.
-    Identifier, String, Number,
+    Identifier,
+    String,
+    Number,
 
     // Keywords.
-    And, Class, Else, False, Fun, For, If, Nil, Or,
-    Print, Return, Super, This, True, Var, While,
+    And,
+    Class,
+    Else,
+    False,
+    Fun,
+    For,
+    If,
+    Nil,
+    Or,
+    Print,
+    Return,
+    Super,
+    This,
+    True,
+    Var,
+    While,
 
-    EOF
+    EOF,
 }
 
 #[derive(Debug)]
 struct Token {
     token_type: TokenType,
     lexeme: Option<String>,
-    line: u32
+    line: u32,
 }
 
 impl Token {
     pub fn new(token_type: TokenType, lexeme: Option<String>, line: u32) -> Self {
-        Token{token_type, lexeme, line}
+        Token {
+            token_type,
+            lexeme,
+            line,
+        }
     }
 }
 
 pub struct Scanner<'a> {
+    peeked: Option<char>,
     source: &'a String,
     chars: Chars<'a>,
     tokens: Vec<Token>,
     start: u32,
     current: u32,
-    line: u32
+    line: u32,
 }
 
 impl<'a> Scanner<'a> {
     pub fn new(source: &'a String) -> Self {
-        Scanner{source, chars: source.chars(), tokens: Vec::new() as Vec<Token>, start: 0, current: 0, line: 0}
+        Scanner {
+            source,
+            chars: source.chars(),
+            peeked: None,
+            tokens: Vec::new() as Vec<Token>,
+            start: 0,
+            current: 0,
+            line: 0,
+        }
     }
 
     pub fn scan_tokens(&mut self) {
         self.start = self.current;
         while self.current < self.source.len() as u32 {
             self.scan_token()
-        };
+        }
         self.add_token(TokenType::EOF, None);
     }
 
     fn scan_token(&mut self) {
         match self.next_char() {
             Some('(') => self.add_token(TokenType::LeftParen, None),
-            Some(')')  => self.add_token(TokenType::RightParen, None),
+            Some(')') => self.add_token(TokenType::RightParen, None),
             Some('{') => self.add_token(TokenType::LeftBrace, None),
             Some('}') => self.add_token(TokenType::RightBrace, None),
             Some(',') => self.add_token(TokenType::Comma, None),
             Some('.') => self.add_token(TokenType::Dot, None),
-            Some('-')  => self.add_token(TokenType::Minus, None),
+            Some('-') => self.add_token(TokenType::Minus, None),
             Some('+') => self.add_token(TokenType::Plus, None),
             Some(';') => self.add_token(TokenType::Semicolon, None),
-            Some('*')  => self.add_token(TokenType::Star, None),
-            Some('!') => {
-                match self.peek_char() {
-                    Some('=') => self.add_token(TokenType::BangEqual, None),
-                    Some(_) => self.add_token(TokenType::Bang, None),
-                    None => ()
-                }
+            Some('*') => self.add_token(TokenType::Star, None),
+            Some('!') => match self.peek_char() {
+                Some('=') => self.add_token(TokenType::BangEqual, None),
+                Some(_) => self.add_token(TokenType::Bang, None),
+                None => (),
             },
-            Some('=') => {
-                match self.peek_char() {
-                    Some('=') => self.add_token(TokenType::EqualEqual, None),
-                    Some(_) => self.add_token(TokenType::Equal, None),
-                    None => ()
-                }
+            Some('=') => match self.peek_char() {
+                Some('=') => self.add_token(TokenType::EqualEqual, None),
+                Some(_) => self.add_token(TokenType::Equal, None),
+                None => (),
             },
-            Some('<') => {
-                match self.peek_char() {
-                    Some('=') => self.add_token(TokenType::LessEqual, None),
-                    Some(_) => self.add_token(TokenType::Less, None),
-                    None => ()
-                }
+            Some('<') => match self.peek_char() {
+                Some('=') => self.add_token(TokenType::LessEqual, None),
+                Some(_) => self.add_token(TokenType::Less, None),
+                None => (),
             },
-            Some('>') => {
-                match self.peek_char() {
-                    Some('=') => self.add_token(TokenType::GreaterEqual, None),
-                    Some(_) => self.add_token(TokenType::Greater, None),
-                    None => ()
-                }
+            Some('>') => match self.peek_char() {
+                Some('=') => self.add_token(TokenType::GreaterEqual, None),
+                Some(_) => self.add_token(TokenType::Greater, None),
+                None => (),
             },
-            Some('/') => {
-                 match self.peek_char() {
-                     Some('/') => {
-                         loop {
-                             match self.next_char() {
-                                Some('\n') => break,
-                                _ => continue
-                            }
-                        }
-                     }
-                     Some(_) => self.add_token(TokenType::Slash, None),
-                     None => ()
-                 }
+            Some('/') => match self.peek_char() {
+                Some('/') => loop {
+                    match self.next_char() {
+                        Some('\n') => break,
+                        _ => continue,
+                    }
+                },
+                Some(_) => self.add_token(TokenType::Slash, None),
+                None => (),
             },
             Some('"') => self.scan_string(),
             Some(' ') => self.scan_token(),
@@ -120,11 +150,11 @@ impl<'a> Scanner<'a> {
             Some('A'..='Z') => self.scan_identifier(),
             Some('a'..='z') => self.scan_identifier(),
             Some('_') => self.scan_identifier(),
-            Some(char) =>  {
+            Some(char) => {
                 let line = self.line;
                 println!("[line {line}] error: unexpected char {char}")
-            },
-            None => ()
+            }
+            None => (),
         };
     }
 
@@ -137,11 +167,11 @@ impl<'a> Scanner<'a> {
                 Some('a'..='z') => end += 1,
                 Some('_') => end += 1,
                 Some(_char) => break,
-                None => break
+                None => break,
             }
         }
 
-        match self.source[start..start+end].as_ref() {
+        match self.source[start..start + end].as_ref() {
             "and" => self.add_token(TokenType::And, None),
             "class" => self.add_token(TokenType::Class, None),
             "else" => self.add_token(TokenType::Else, None),
@@ -158,7 +188,7 @@ impl<'a> Scanner<'a> {
             "true" => self.add_token(TokenType::True, None),
             "var" => self.add_token(TokenType::Var, None),
             "while" => self.add_token(TokenType::While, None),
-            identifier => self.add_token(TokenType::Identifier, Some(identifier.to_string()))
+            identifier => self.add_token(TokenType::Identifier, Some(identifier.to_string())),
         }
     }
 
@@ -170,11 +200,14 @@ impl<'a> Scanner<'a> {
                 Some('0'..='9') => end += 1,
                 Some('.') => end += 1,
                 Some(_char) => break,
-                None => break
+                None => break,
             }
         }
 
-        self.add_token(TokenType::Number, Some(self.source[start..start+end].to_string()));
+        self.add_token(
+            TokenType::Number,
+            Some(self.source[start..start + end].to_string()),
+        );
     }
 
     fn scan_string(&mut self) {
@@ -184,19 +217,23 @@ impl<'a> Scanner<'a> {
             match self.next_char() {
                 Some('"') => break,
                 Some(_char) => end += 1,
-                None => continue
+                None => continue,
             }
         }
-        self.add_token(TokenType::String, Some(self.source[start..start+end].to_string()));
+        self.add_token(
+            TokenType::String,
+            Some(self.source[start..start + end].to_string()),
+        );
     }
 
     fn add_token(&mut self, token_type: TokenType, lexeme: Option<String>) {
         let token = Token::new(token_type, lexeme, self.line);
+        println!("{token:?}");
         self.tokens.push(token);
     }
 
     fn next_char(&mut self) -> Option<char> {
-        match self.chars.next() {
+        match self.peeked_or_next_char() {
             Some('\n') => {
                 self.line += 1;
                 self.current += 1;
@@ -207,11 +244,24 @@ impl<'a> Scanner<'a> {
                 return Some(character);
             }
 
-            None => return None
+            None => return None,
         }
     }
 
     fn peek_char(&mut self) -> Option<char> {
-        return  self.chars.clone().peekable().peek().copied();
+        match self.next_char() {
+            None => None,
+            next_char => next_char,
+        }
+    }
+
+    fn peeked_or_next_char(&mut self) -> Option<char> {
+        match self.peeked {
+            None => return self.chars.next(),
+            peeked => {
+                self.peeked = None;
+                return peeked;
+            }
+        };
     }
 }
